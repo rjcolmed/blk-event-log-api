@@ -1,10 +1,14 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
+const qs = require('qs')
+const axios = require('axios')
 
 const port = process.env.port || 3002
 const clientId = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
-const subscriptionKey = process.env.EL_SUBSCRIPTION_KEY
+const eventLogKey = process.env.EL_SUBSCRIPTION_KEY
+const accessControlKey = process.env.AC_SUBSCRIPTION_KEY
 const deviceId = process.env.DEVICE_ID
 
 const redirectUri = 'http://localhost:3002/callback'
@@ -19,6 +23,30 @@ app.use(cors())
 
 app.get('/', (req, res) => {
   res.sendFile('index')
+})
+
+app.get('/callback', (req, res) => {
+  let data = qs.stringify({
+    grant_type: 'authorization_code',
+    code: req.query.code,
+    redirect_uri: redirectUri,
+    client_id: clientId,
+    client_secret: clientSecret
+  })
+
+  console.log(clientId)
+
+  console.log(data)
+
+  return axios.post(
+    tokenEndpoint, data, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }
+  ).then(response => {
+    console.log(response.data.access_token)
+  }).catch(err => console.log('======> Access token error: ', err))
 })
 
 app.listen(port, () => {

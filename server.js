@@ -14,10 +14,11 @@ const grantType = 'authorization_code'
 
 const cors = require('cors')
 
+app.use(express.static('public'))
 app.use(cors())
 
 app.get('/', (req, res) => {
-  res.send('on root')
+  res.sendFile('index')
 })
 
 app.listen(port, () => {

@@ -17,6 +17,9 @@ const occupanciesUri = 'https://api.buildinglink.com/AccessControl/PropEmp/v1/Un
 const tokenEndpoint = 'https://auth.buildinglink.com/connect/token'
 const grantType = 'authorization_code'
 
+const getOccupancies = require('./requests/getOccupancies')
+const getEvents = require('./requests/getEvents')
+
 const cors = require('cors')
 
 app.use(express.static('public'))
@@ -50,25 +53,11 @@ app.get('/callback', (req, res) => {
 })
 
 app.get('/api/events', (req, res) => {
-  return axios({
-    method: 'get',
-    url: occupanciesUri,
-    headers: {
-      'Accept': 'application/json',
-      'Ocp-Apim-Subscription-Key': accessControlKey,
-      'Authorization': `Bearer ${app.locals.accessToken}`
-    },
-    params: {
-      "device-id": deviceId,
-      $filter: 'IsActive eq true',
-      $select: 'Id',
-      $expand: 'PhysicalUnit($select=Number)',
-      $top: 500,
-      $count: true
-    }
-  }).then(response => {
-    console.log(response.data)
-  }).catch(err => console.log('Error getting occupancies ======> ', err))
+  getOccupancies(occupanciesUri, accessControlKey, app, deviceId)
+    .then(occupancies => {
+      getEvents(eventLogUri, eventLogKey, app, deviceId)
+        .then(events => console.log(events))
+    }).catch(err => console.log('Error =====> ', err))
 })
 
 app.listen(port, () => {

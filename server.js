@@ -13,6 +13,7 @@ const deviceId = process.env.DEVICE_ID
 
 const redirectUri = 'http://localhost:3002/callback'
 const eventLogUri = 'https://api.buildinglink.com/EventLog/PropEmp/v1/Events'
+const occupanciesUri = 'https://api.buildinglink.com/AccessControl/PropEmp/v1/UnitOccupancies'
 const tokenEndpoint = 'https://auth.buildinglink.com/connect/token'
 const grantType = 'authorization_code'
 
@@ -45,11 +46,29 @@ app.get('/callback', (req, res) => {
     app.locals.refreshToken = response.data.refresh_token
 
     res.send('auth successful. make requests to /api/events.')
-  }).catch(err => console.log('======> Access token error: ', err))
+  }).catch(err => console.log('Access token error =====> ', err))
 })
 
 app.get('/api/events', (req, res) => {
-  console.log(app.locals.refreshToken)
+  return axios({
+    method: 'get',
+    url: occupanciesUri,
+    headers: {
+      'Accept': 'application/json',
+      'Ocp-Apim-Subscription-Key': accessControlKey,
+      'Authorization': `Bearer ${app.locals.accessToken}`
+    },
+    params: {
+      "device-id": deviceId,
+      $filter: 'IsActive eq true',
+      $select: 'Id',
+      $expand: 'PhysicalUnit($select=Number)',
+      $top: 500,
+      $count: true
+    }
+  }).then(response => {
+    console.log(response.data)
+  }).catch(err => console.log('Error getting occupancies ======> ', err))
 })
 
 app.listen(port, () => {

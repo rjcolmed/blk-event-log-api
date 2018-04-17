@@ -34,10 +34,6 @@ app.get('/callback', (req, res) => {
     client_secret: clientSecret
   })
 
-  console.log(clientId)
-
-  console.log(data)
-
   return axios.post(
     tokenEndpoint, data, {
       headers: {
@@ -45,8 +41,15 @@ app.get('/callback', (req, res) => {
       }
     }
   ).then(response => {
-    console.log(response.data.access_token)
+    app.locals.accessToken = response.data.access_token
+    app.locals.refreshToken = response.data.refresh_token
+
+    res.send('auth successful. make requests to /api/events.')
   }).catch(err => console.log('======> Access token error: ', err))
+})
+
+app.get('/api/events', (req, res) => {
+  console.log(app.locals.refreshToken)
 })
 
 app.listen(port, () => {

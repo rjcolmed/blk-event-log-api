@@ -54,8 +54,9 @@ app.get('/callback', (req, res) => {
 app.get('/api/events', (req, res) => {
   getOccupancies(occupanciesUri, accessControlKey, app, deviceId)
     .then(occupancies => {
-      getEvents(eventLogUri, eventLogKey, app, deviceId)
-        .then(events => console.log(events))
+      console.log(occupancies)
+      getEvents(eventLogUri, eventLogKey, app, deviceId, occupancies)
+        .then(events => res.json(events))
         .catch(err => {
           console.log('ERROR: ', err)
           if ( err.response.status === 429 ) {

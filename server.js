@@ -15,7 +15,6 @@ const redirectUri = 'http://localhost:3002/callback'
 const eventLogUri = 'https://api.buildinglink.com/EventLog/PropEmp/v1/Events'
 const occupanciesUri = 'https://api.buildinglink.com/AccessControl/PropEmp/v1/UnitOccupancies'
 const tokenEndpoint = 'https://auth.buildinglink.com/connect/token'
-const grantType = 'authorization_code'
 
 const getOccupancies = require('./requests/getOccupancies')
 const getEvents = require('./requests/getEvents')
@@ -57,7 +56,45 @@ app.get('/api/events', (req, res) => {
     .then(occupancies => {
       getEvents(eventLogUri, eventLogKey, app, deviceId)
         .then(events => console.log(events))
-    }).catch(err => console.log('Error =====> ', err))
+        .catch(err => {
+          console.log('ERROR: ', err)
+          if ( err.response.status === 429 ) {
+            res.send('Too many requests. Try again in a few seconds.')
+          } else if ( err.response.status === 401 ) {
+            console.log('refresh!!!!!!!!!!!')
+          }
+        })
+    })
+    .catch(err => {
+      console.log('An error occurred ======>')
+      if ( err.response.status === 401  ) {
+        console.log('need refresh')
+
+        let refreshData = qs.stringify({
+          grant_type: 'refresh_token',
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: app.locals.refreshToken
+        })
+
+        return axios.post(tokenEndpoint, refreshData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }).then(response => {
+          app.locals.accessToken = response.data.access_token
+
+          res.redirect('/api/events')
+        }).catch(err => {
+          console.log('Refresh token error: ', err)
+        })
+      } else if ( err.response.status === 429 ) {
+        res.send('Too many requests...')
+      } else {
+        console.log('This one fell through:', err)
+      }
+    })
 })
 
 app.listen(port, () => {

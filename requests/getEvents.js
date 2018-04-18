@@ -1,6 +1,6 @@
 const axios = require('axios')
 
-module.exports = (eventLogUri, eventLogKey, app, deviceId) => {
+module.exports = (eventLogUri, eventLogKey, app, deviceId, occupancies) => {
   return axios({
     method: 'get',
     url: eventLogUri,
@@ -17,6 +17,21 @@ module.exports = (eventLogUri, eventLogKey, app, deviceId) => {
       $top: 500,
       $count: true
     }
-  }).then(response => response.data)
-    // .catch(err => err)
+  }).then(response => {
+    const occupanciesEvents = [...occupancies]
+
+    occupanciesEvents.forEach(occupancy => {
+      response.data.value.forEach(event => {
+        if ( occupancy.Id === event.UnitOccupancyId ) {
+          occupancy.Events.push({
+            TypeId: event.TypeId,
+            IconTypeId: event.Type.IconTypeId,
+            Group: event.Type.Group.Name
+          })
+        }
+      })
+    })
+
+    return occupanciesEvents
+  })
 }

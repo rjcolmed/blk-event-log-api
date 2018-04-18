@@ -17,8 +17,14 @@ module.exports = (occupanciesUri, accessControlKey, app, deviceId) => {
       $top: 500,
       $count: true
     }
-  }).then(response => {
-    return response.data
+  }).then(allOccupancies => {
+    return allOccupancies.data.value.map(occupancy => {
+      return {
+        Id: occupancy.Id,
+        Number: occupancy.PhysicalUnit.Number,
+        Events: []
+      }
+    })
   })
-  // .catch(err => err)
+  
 }

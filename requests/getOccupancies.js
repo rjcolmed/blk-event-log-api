@@ -19,5 +19,6 @@ module.exports = (occupanciesUri, accessControlKey, app, deviceId) => {
     }
   }).then(response => {
     return response.data
-  }).catch(err => console.log('Error getting occupancies ======> ', err))
+  })
+  // .catch(err => err)
 }

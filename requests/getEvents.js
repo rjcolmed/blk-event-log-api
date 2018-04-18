@@ -18,5 +18,5 @@ module.exports = (eventLogUri, eventLogKey, app, deviceId) => {
       $count: true
     }
   }).then(response => response.data)
-    .catch(err => console.log('Error getting events ======> ', err))
+    // .catch(err => err)
 }

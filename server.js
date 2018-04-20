@@ -12,8 +12,6 @@ const accessControlKey = process.env.AC_SUBSCRIPTION_KEY
 const deviceId = process.env.DEVICE_ID
 
 const redirectUri = 'http://localhost:3002/callback'
-const eventLogUri = 'https://api.buildinglink.com/EventLog/PropEmp/v1/Events'
-const occupanciesUri = 'https://api.buildinglink.com/AccessControl/PropEmp/v1/UnitOccupancies'
 const tokenEndpoint = 'https://auth.buildinglink.com/connect/token'
 
 const getOccupancies = require('./requests/getOccupancies')
@@ -54,18 +52,9 @@ app.get('/callback', (req, res) => {
 app.get('/api/events', (req, res) => {
   getOccupancies(accessControlKey, app, deviceId)
     .then(occupancies => {
-      console.log(occupancies.length)
-      res.json(occupancies)
-      // getEvents(eventLogUri, eventLogKey, app, deviceId, occupancies)
-      //   .then(events => res.json(events))
-      //   .catch(err => {
-      //     console.log('ERROR: ', err)
-      //     if ( err.response.status === 429 ) {
-      //       res.send('Too many requests. Try again in a few seconds.')
-      //     } else if ( err.response.status === 401 ) {
-      //       console.log('refresh!!!!!!!!!!!')
-      //     }
-      //   })
+      getEvents(eventLogKey, app, deviceId, occupancies)
+        .then(events => res.json(events))
+        .catch(err => console.log(err))
     })
     .catch(err => {
       console.log('An error occurred ======>', err)

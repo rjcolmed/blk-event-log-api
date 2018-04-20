@@ -1,27 +1,52 @@
 const axios = require('axios')
+const eventLogUri = 'https://api.buildinglink.com/EventLog/PropEmp/v1/Events'
+let eventLogHeaders
+let collectedEvents = []
+let eventLogParams
 
-module.exports = (eventLogUri, eventLogKey, app, deviceId, occupancies) => {
+module.exports = (eventLogKey, app, deviceId, occupancies) => {
+  eventLogHeaders = {
+    'Accept': 'application/json',
+    'Ocp-Apim-Subscription-Key': eventLogKey,
+    'Authorization': `Bearer ${app.locals.accessToken}`
+  }
+
+  eventLogParams = {
+    "device-id": deviceId,
+    $filter: 'IsOpen eq true',
+    $select: 'Id,TypeId,UnitOccupancyId',
+    $expand: 'Type($expand=Group($select=name);$select=IconTypeId)',
+    $count: true,
+    $skip: 0
+  }
+
   return axios({
     method: 'get',
     url: eventLogUri,
-    headers: {
-      'Accept': 'application/json',
-      'Ocp-Apim-Subscription-Key': eventLogKey,
-      'Authorization': `Bearer ${app.locals.accessToken}`
-    },
-    params: {
-      "device-id": deviceId,
-      $filter: 'IsOpen eq true',
-      $select: 'Id,TypeId,UnitOccupancyId',
-      $expand: 'Type($expand=Group($select=name);$select=IconTypeId)',
-      $top: 500,
-      $count: true
-    }
+    headers: eventLogHeaders,
+    params: eventLogParams
   }).then(response => {
+    collectedEvents = response.data.value
+
+    return requestNextLink()
+            .then(results => {
+              eventLogParams['$skip'] += 100
+
+              return axios({
+                method: 'get',
+                url: eventLogUri,
+                headers: eventLogHeaders,
+                params: eventLogParams
+              }).then(res => {
+                return [...results, ...res.data.value]
+              })
+            })
+  })
+  .then(events => {
     const occupanciesEvents = [...occupancies]
 
     occupanciesEvents.forEach(occupancy => {
-      response.data.value.forEach(event => {
+      events.forEach(event => {
         if ( occupancy.Id === event.UnitOccupancyId ) {
           occupancy.Events.push({
             TypeId: event.TypeId,
@@ -33,5 +58,25 @@ module.exports = (eventLogUri, eventLogKey, app, deviceId, occupancies) => {
     })
 
     return occupanciesEvents
+  })
+}
+
+function requestNextLink() {
+  eventLogParams['$skip'] += 100
+ 
+  return axios({
+    method: 'get',
+    url: eventLogUri,
+    headers: eventLogHeaders,
+    params: eventLogParams
+  })
+  .then(res => {
+    collectedEvents = [...collectedEvents, ...res.data.value]
+
+    if ( res.data['@odata.nextLink'] ) {
+      requestNextLink()
+    }
+    return collectedEvents = [...collectedEvents, ...res.data.value]
+
   })
 }

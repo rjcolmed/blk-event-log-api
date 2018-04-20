@@ -52,21 +52,23 @@ app.get('/callback', (req, res) => {
 })
 
 app.get('/api/events', (req, res) => {
-  getOccupancies(occupanciesUri, accessControlKey, app, deviceId)
+  getOccupancies(accessControlKey, app, deviceId)
     .then(occupancies => {
-      getEvents(eventLogUri, eventLogKey, app, deviceId, occupancies)
-        .then(events => res.json(events))
-        .catch(err => {
-          console.log('ERROR: ', err)
-          if ( err.response.status === 429 ) {
-            res.send('Too many requests. Try again in a few seconds.')
-          } else if ( err.response.status === 401 ) {
-            console.log('refresh!!!!!!!!!!!')
-          }
-        })
+      console.log(occupancies.length)
+      res.json(occupancies)
+      // getEvents(eventLogUri, eventLogKey, app, deviceId, occupancies)
+      //   .then(events => res.json(events))
+      //   .catch(err => {
+      //     console.log('ERROR: ', err)
+      //     if ( err.response.status === 429 ) {
+      //       res.send('Too many requests. Try again in a few seconds.')
+      //     } else if ( err.response.status === 401 ) {
+      //       console.log('refresh!!!!!!!!!!!')
+      //     }
+      //   })
     })
     .catch(err => {
-      console.log('An error occurred ======>')
+      console.log('An error occurred ======>', err)
       if ( err.response.status === 401  ) {
         console.log('need refresh')
 

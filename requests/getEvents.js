@@ -57,7 +57,9 @@ module.exports = (eventLogKey, app, deviceId, occupancies) => {
       })
     })
 
-    return occupanciesEvents
+    return occupanciesEvents.sort((a, b) => {
+        return a.Number.toLowerCase().localeCompare(b.Number.toLowerCase())
+      })
   })
 }
 
@@ -77,6 +79,5 @@ function requestNextLink() {
       requestNextLink()
     }
     return collectedEvents = [...collectedEvents, ...res.data.value]
-
   })
 }

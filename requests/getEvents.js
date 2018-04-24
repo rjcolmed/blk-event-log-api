@@ -1,17 +1,19 @@
 const axios = require('axios')
-const eventLogUri = 'https://api.buildinglink.com/EventLog/PropEmp/v1/Events'
-let eventLogHeaders
+const requestUri = 'https://api.buildinglink.com/EventLog/PropEmp/v1/Events'
+let requestHeaders
 let collectedEvents = []
-let eventLogParams
+let requestParams
+let nextLinkEvents = []
+let nextLink
 
 module.exports = (eventLogKey, app, deviceId, occupancies) => {
-  eventLogHeaders = {
+  requestHeaders = {
     'Accept': 'application/json',
     'Ocp-Apim-Subscription-Key': eventLogKey,
     'Authorization': `Bearer ${app.locals.accessToken}`
   }
 
-  eventLogParams = {
+  requestParams = {
     "device-id": deviceId,
     $filter: 'IsOpen eq true',
     $select: 'Id,TypeId,UnitOccupancyId',
@@ -22,25 +24,17 @@ module.exports = (eventLogKey, app, deviceId, occupancies) => {
 
   return axios({
     method: 'get',
-    url: eventLogUri,
-    headers: eventLogHeaders,
-    params: eventLogParams
+    url: requestUri,
+    headers: requestHeaders,
+    params: requestParams
   }).then(response => {
-    collectedEvents = response.data.value
+   
+    if ( response.data['@odata.nextLink'] ) {
+      return getAllNextLinks(response.data.value)
+    } else {
+      return response.data.value
+    }
 
-    return requestNextLink()
-            .then(results => {
-              eventLogParams['$skip'] += 100
-
-              return axios({
-                method: 'get',
-                url: eventLogUri,
-                headers: eventLogHeaders,
-                params: eventLogParams
-              }).then(res => {
-                return [...results, ...res.data.value]
-              })
-            })
   })
   .then(events => {
     const occupanciesEvents = [...occupancies]
@@ -63,21 +57,42 @@ module.exports = (eventLogKey, app, deviceId, occupancies) => {
   })
 }
 
-function requestNextLink() {
-  eventLogParams['$skip'] += 100
- 
+function getAllNextLinks(initialResults) {
+  let allResults = [...initialResults] //this will contain all events
+  console.log('In get all getAllNextLinks', allResults.length)
+
+  const getNextLink = () => {
+    requestParams['$skip'] += 100
+
+    return fetchEvents()
+      .then(response => {
+        console.log(response.value.length)
+        allResults = [...allResults, ...response.value]
+        if ( response['@odata.nextLink'] ) {
+          return getNextLink()
+        } else {
+          console.log('in else statememt')
+          requestParams['$skip'] += 100
+          return fetchEvents()
+            .then(response => {
+              allResults = [...allResults, ...response.value]
+              console.log('All events:', allResults.length)
+              return allResults
+            })
+        
+        }
+      })
+  }
+
+  return getNextLink()
+}
+
+function fetchEvents() {
+  console.log('in fetch')
   return axios({
     method: 'get',
-    url: eventLogUri,
-    headers: eventLogHeaders,
-    params: eventLogParams
-  })
-  .then(res => {
-    collectedEvents = [...collectedEvents, ...res.data.value]
-
-    if ( res.data['@odata.nextLink'] ) {
-      requestNextLink()
-    }
-    return collectedEvents = [...collectedEvents, ...res.data.value]
-  })
+    url: requestUri,
+    headers: requestHeaders,
+    params: requestParams
+  }).then(response => response.data)
 }

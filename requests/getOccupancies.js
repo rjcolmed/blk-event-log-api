@@ -1,17 +1,17 @@
 const axios = require('axios')
-const occupanciesUri = 'https://api.buildinglink.com/AccessControl/PropEmp/v1/UnitOccupancies'
-let accessControlHeaders
+const requestUri = 'https://api.buildinglink.com/AccessControl/PropEmp/v1/UnitOccupancies'
+let requestHeaders
 let collectedOccupancies = []
-let accessControlParams
+let requestParams
 
 module.exports = (accessControlKey, app, deviceId) => {
-  accessControlHeaders = {
+  requestHeaders = {
     'Accept': 'application/json',
     'Ocp-Apim-Subscription-Key': accessControlKey,
     'Authorization': `Bearer ${app.locals.accessToken}`
   }
 
-  accessControlParams = {
+  requestParams = {
     "device-id": deviceId,
     $filter: 'IsActive eq true',
     $select: 'Id',
@@ -22,27 +22,21 @@ module.exports = (accessControlKey, app, deviceId) => {
 
   return axios({
     method: 'get',
-    url: occupanciesUri,
-    headers: accessControlHeaders,
-    params: accessControlParams
+    url: requestUri,
+    headers: requestHeaders,
+    params: requestParams
   })
   .then(response => {
-    collectedOccupancies = response.data.value
-    return requestNextLink()
-            .then(results => {
-              accessControlParams['$skip'] += 100
+    
+    if ( response.data['@odata.nextLink'] ) {
+      return getAllNextLinks(response.data.value)
+    } else {
+      return response.data.value
+    }
 
-              return axios({
-                method: 'get',
-                url: occupanciesUri,
-                headers: accessControlHeaders,
-                params: accessControlParams
-              }).then(res => {
-                return [...results, ...res.data.value]
-              })
-            })
-  }).then(allOccupancies => {
-    return allOccupancies.map(occupancy => {
+  }).then(occupancies => {
+    console.log('Final occupancies', occupancies.length)
+    return occupancies.map(occupancy => {
       return {
         Id: occupancy.Id,
         Number: occupancy.PhysicalUnit ? occupancy.PhysicalUnit.Number : 'Undefined',
@@ -54,22 +48,62 @@ module.exports = (accessControlKey, app, deviceId) => {
   
 }
 
-function requestNextLink() {
-  accessControlParams['$skip'] += 100
- 
+function getAllNextLinks(initialResults) {
+  let allResults = [...initialResults] //this will contain all events
+  console.log('In get all getAllNextLinks', allResults.length)
+
+  const getNextLink = () => {
+    requestParams['$skip'] += 100
+
+    return fetchEvents()
+      .then(response => {
+        console.log(response.value.length)
+        allResults = [...allResults, ...response.value]
+        if ( response['@odata.nextLink'] ) {
+          return getNextLink()
+        } else {
+          console.log('in else statememt')
+          requestParams['$skip'] += 100
+          return fetchEvents()
+            .then(response => {
+              allResults = [...allResults, ...response.value]
+              console.log('All occupancies:', allResults.length)
+              return allResults
+            })
+        
+        }
+      })
+  }
+
+  return getNextLink()
+}
+
+function fetchEvents() {
+  console.log('in fetch')
   return axios({
     method: 'get',
-    url: occupanciesUri,
-    headers: accessControlHeaders,
-    params: accessControlParams
-  })
-  .then(res => {
-    collectedOccupancies = [...collectedOccupancies, ...res.data.value]
-
-    if ( res.data['@odata.nextLink'] ) {
-      requestNextLink()
-    }
-    return collectedOccupancies = [...collectedOccupancies, ...res.data.value]
-
-  })
+    url: requestUri,
+    headers: requestHeaders,
+    params: requestParams
+  }).then(response => response.data)
 }
+
+// function requestNextLink() {
+//   requestParams['$skip'] += 100
+ 
+//   return axios({
+//     method: 'get',
+//     url: requestUri,
+//     headers: requestHeaders,
+//     params: requestParams
+//   })
+//   .then(res => {
+//     collectedOccupancies = [...collectedOccupancies, ...res.data.value]
+
+//     if ( res.data['@odata.nextLink'] ) {
+//       requestNextLink()
+//     }
+//     return collectedOccupancies = [...collectedOccupancies, ...res.data.value]
+
+//   })
+// }

@@ -16,6 +16,7 @@ const tokenEndpoint = 'https://auth.buildinglink.com/connect/token'
 
 const getOccupancies = require('./requests/getOccupancies')
 const getEvents = require('./requests/getEvents')
+const getAnnouncements = require('./requests/getAnnouncements')
 
 const cors = require('cors')
 
@@ -86,6 +87,10 @@ app.get('/api/events', (req, res) => {
         console.log('This one fell through:', err)
       }
     })
+})
+
+app.get('/api/announcements', (req, res) => {
+  getAnnouncements(res)
 })
 
 app.listen(port, () => {

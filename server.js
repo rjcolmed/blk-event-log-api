@@ -18,6 +18,7 @@ const getOccupancies = require('./requests/getOccupancies')
 const getEvents = require('./requests/getEvents')
 const getAnnouncements = require('./requests/getAnnouncements')
 const getServiceStatus = require('./requests/getServiceStatus')
+const getGtfs = require('./requests/getGtfs')
 
 const cors = require('cors')
 
@@ -96,6 +97,10 @@ app.get('/api/announcements', (req, res) => {
 
 app.get('/api/service-status', (req, res) => {
   getServiceStatus(res)
+})
+
+app.get('/api/gtfs', (req, res) => {
+  getGtfs(res)
 })
 
 app.listen(port, () => {

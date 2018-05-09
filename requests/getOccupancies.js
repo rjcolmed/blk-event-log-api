@@ -35,7 +35,6 @@ module.exports = (accessControlKey, app, deviceId) => {
     }
 
   }).then(occupancies => {
-    console.log('Final occupancies', occupancies.length)
     return occupancies.map(occupancy => {
       return {
         Id: occupancy.Id,
@@ -44,12 +43,10 @@ module.exports = (accessControlKey, app, deviceId) => {
       }
     })
   })
- 
-  
 }
 
 function getAllNextLinks(initialResults) {
-  let allResults = [...initialResults] //this will contain all events
+  let allResults = [...initialResults]
   console.log('In get all getAllNextLinks', allResults.length)
 
   const getNextLink = () => {
@@ -87,23 +84,3 @@ function fetchEvents() {
     params: requestParams
   }).then(response => response.data)
 }
-
-// function requestNextLink() {
-//   requestParams['$skip'] += 100
- 
-//   return axios({
-//     method: 'get',
-//     url: requestUri,
-//     headers: requestHeaders,
-//     params: requestParams
-//   })
-//   .then(res => {
-//     collectedOccupancies = [...collectedOccupancies, ...res.data.value]
-
-//     if ( res.data['@odata.nextLink'] ) {
-//       requestNextLink()
-//     }
-//     return collectedOccupancies = [...collectedOccupancies, ...res.data.value]
-
-//   })
-// }

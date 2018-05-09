@@ -17,7 +17,7 @@ module.exports = (eventLogKey, app, deviceId, occupancies) => {
     "device-id": deviceId,
     $filter: 'IsOpen eq true',
     $select: 'Id,TypeId,UnitOccupancyId',
-    $expand: 'Type($expand=Group($select=name);$select=IconTypeId)',
+    $expand: 'Type($expand=Group($select=name);$select=IconTypeId,GroupId)',
     $count: true,
     $skip: 0
   }
@@ -35,13 +35,12 @@ module.exports = (eventLogKey, app, deviceId, occupancies) => {
       return response.data.value
     }
 
-  })
-  .then(events => {
+  }).then(events => {
     const occupanciesEvents = [...occupancies]
 
     occupanciesEvents.forEach(occupancy => {
       events.forEach(event => {
-        if ( occupancy.Id === event.UnitOccupancyId ) {
+        if ( occupancy.Id === event.UnitOccupancyId && event.Type.GroupId === 1 ) {
           occupancy.Events.push({
             TypeId: event.TypeId,
             IconTypeId: event.Type.IconTypeId,
@@ -58,8 +57,7 @@ module.exports = (eventLogKey, app, deviceId, occupancies) => {
 }
 
 function getAllNextLinks(initialResults) {
-  let allResults = [...initialResults] //this will contain all events
-  console.log('In get all getAllNextLinks', allResults.length)
+  let allResults = [...initialResults]
 
   const getNextLink = () => {
     requestParams['$skip'] += 100
@@ -88,7 +86,6 @@ function getAllNextLinks(initialResults) {
 }
 
 function fetchEvents() {
-  console.log('in fetch')
   return axios({
     method: 'get',
     url: requestUri,
